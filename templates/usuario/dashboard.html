@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard | Pragma OCR{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h2">Panel de Control</h1>
+    <a href="{% url 'usuario:cargar_factura' %}" class="btn btn-primary">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="me-2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        Nueva Factura
+    </a>
+</div>
+
+<div class="row mb-5" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.5rem;">
+    <div class="card p-4 text-center">
+        <div class="text-muted small fw-bold text-uppercase mb-2">Facturas Procesadas</div>
+        <div class="h1 mb-0">{{ metrics.total_facturas_procesadas }}</div>
+    </div>
+    <div class="card p-4 text-center" style="border-top: 4px solid var(--accent);">
+        <div class="text-muted small fw-bold text-uppercase mb-2">Tasa de Match</div>
+        <div class="h1 mb-0" style="color: var(--primary);">{{ metrics.tasa_match_exitoso }}%</div>
+    </div>
+    <div class="card p-4 text-center">
+        <div class="text-muted small fw-bold text-uppercase mb-2">Pendientes</div>
+        <div class="h1 mb-0 text-warning">{{ metrics.validaciones_pendientes }}</div>
+    </div>
+    <div class="card p-4 text-center" style="background-color: var(--primary); color: white;">
+        <div class="text-white-50 small fw-bold text-uppercase mb-2">Tiempo Ahorrado</div>
+        <div class="h1 mb-0">{{ metrics.tiempo_ahorrado_horas }}<span class="h4">h</span></div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="h4">Inconsistencias Recientes</h2>
+        <a href="{% url 'usuario:consulta_pagos' %}" class="btn btn-secondary btn-sm">Ver todos</a>
+    </div>
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Factura</th>
+                    <th>Certificado</th>
+                    <th>Estado</th>
+                    <th>Puntaje</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in metrics.inconsistencias_recientes %}
+                    <tr>
+                        <td class="fw-600">{{ item.factura.numero_factura }}</td>
+                        <td>{{ item.certificado.numero_referencia }}</td>
+                        <td>
+                            {% if item.estado_match == 'match' %}
+                                <span class="badge badge-success">Match</span>
+                            {% elif item.estado_match == 'partial' %}
+                                <span class="badge badge-warning">Parcial</span>
+                            {% else %}
+                                <span class="badge badge-error">Inconsistente</span>
+                            {% endif %}
+                        </td>
+                        <td class="fw-bold">{{ item.match_score }}%</td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="4" class="text-center py-5 text-muted">No se han detectado inconsistencias recientes. Todo está al día.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<style>
+    .h1 { font-size: 2.5rem; }
+    .h2 { font-size: 2rem; }
+    .h4 { font-size: 1.25rem; }
+    .fw-600 { font-weight: 600; }
+    .text-center { text-align: center; }
+    .me-2 { margin-right: 0.5rem; }
+    .py-5 { padding-top: 3rem; padding-bottom: 3rem; }
+</style>
+{% endblock %}

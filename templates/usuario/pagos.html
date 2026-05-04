@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+
+{% block title %}Pagos | Pragma OCR{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h2">Estado de Pagos y Conciliación</h1>
+    <div class="d-flex gap-2">
+        <a class="btn btn-outline" href="{% url 'usuario:exportar_pagos_excel' %}">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+            Exportar Excel
+        </a>
+    </div>
+</div>
+
+<div class="card p-0 overflow-hidden">
+    <div class="p-4 border-bottom bg-light d-flex justify-content-between align-items-center">
+        <form method="get" class="d-flex gap-3 align-items-center">
+            <label for="estado" class="fw-600 small text-muted text-uppercase">Filtrar por estado:</label>
+            <select name="estado" id="estado" class="form-select">
+                <option value="">Todos los estados</option>
+                <option value="match" {% if estado == "match" %}selected{% endif %}>✅ Conciliado (Match)</option>
+                <option value="partial" {% if estado == "partial" %}selected{% endif %}>⚠️ Parcial</option>
+                <option value="no_match" {% if estado == "no_match" %}selected{% endif %}>❌ No coincide</option>
+            </select>
+            <button class="btn btn-secondary" type="submit">Aplicar Filtro</button>
+        </form>
+    </div>
+    
+    <div class="table-responsive">
+        <table class="m-0">
+            <thead>
+                <tr>
+                    <th>Factura</th>
+                    <th>Certificado Bancario</th>
+                    <th>Estado de Conciliación</th>
+                    <th>Nivel de Confianza</th>
+                    <th style="text-align: right;">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for detalle in detalles_pago %}
+                    <tr>
+                        <td>
+                            <div class="fw-bold">{{ detalle.factura.numero_factura }}</div>
+                            <div class="small text-muted">Q {{ detalle.factura.monto }}</div>
+                        </td>
+                        <td>
+                            <div class="fw-bold">{{ detalle.certificado.numero_referencia }}</div>
+                            <div class="small text-muted">Q {{ detalle.certificado.monto }}</div>
+                        </td>
+                        <td>
+                            {% if detalle.estado_match == 'match' %}
+                                <span class="badge badge-success">Conciliado</span>
+                            {% elif detalle.estado_match == 'partial' %}
+                                <span class="badge badge-warning">Parcial</span>
+                            {% else %}
+                                <span class="badge badge-error">Inconsistente</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="progress-bar-bg">
+                                    <div class="progress-bar-fill {% if detalle.match_score >= 90 %}bg-success{% elif detalle.match_score >= 50 %}bg-warning{% else %}bg-error{% endif %}" style="width: {{ detalle.match_score }}%"></div>
+                                </div>
+                                <span class="fw-bold small">{{ detalle.match_score }}%</span>
+                            </div>
+                        </td>
+                        <td style="text-align: right;">
+                            <a class="btn btn-secondary btn-sm" href="{% url 'usuario:exportar_pago_pdf' detalle.id %}" title="Descargar PDF de Conciliación">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                                PDF
+                            </a>
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center py-5 text-muted">No se han encontrado registros de pagos para los criterios seleccionados.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<style>
+    .h2 { font-size: 2rem; }
+    .bg-light { background-color: #F9FAFB; }
+    .border-bottom { border-bottom: 1px solid var(--border-color); }
+    .p-0 { padding: 0 !important; }
+    .overflow-hidden { overflow: hidden; }
+    .m-0 { margin: 0; }
+    .gap-2 { gap: 0.5rem; }
+    .gap-3 { gap: 1rem; }
+    .d-flex { display: flex; }
+    .align-items-center { align-items: center; }
+    .justify-content-between { justify-content: space-between; }
+    .fw-bold { font-weight: 700; }
+    .fw-600 { font-weight: 600; }
+    .small { font-size: 0.85rem; }
+    .text-muted { color: var(--text-muted); }
+    .text-uppercase { text-transform: uppercase; }
+    .py-5 { padding-top: 3rem; padding-bottom: 3rem; }
+    .text-center { text-align: center; }
+    .me-2 { margin-right: 0.5rem; }
+
+    .form-select {
+        padding: 0.5rem 2rem 0.5rem 1rem;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        background-color: white;
+        font-family: inherit;
+        font-size: 0.9rem;
+        cursor: pointer;
+    }
+
+    .progress-bar-bg {
+        width: 100px;
+        height: 6px;
+        background-color: #E5E7EB;
+        border-radius: 999px;
+        overflow: hidden;
+    }
+    .progress-bar-fill {
+        height: 100%;
+        border-radius: 999px;
+    }
+    .bg-success { background-color: #10B981; }
+    .bg-warning { background-color: #F59E0B; }
+    .bg-error { background-color: #EF4444; }
+
+    .btn-sm {
+        padding: 0.4rem 0.8rem;
+        font-size: 0.85rem;
+    }
+</style>
+{% endblock %}

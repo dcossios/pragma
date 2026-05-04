@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Usuarios | Pragma OCR{% endblock %}
+
+{% block content %}
+<h1>Administración de usuarios</h1>
+
+<h2>Crear usuario</h2>
+<form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button class="btn btn-primary" type="submit">Crear usuario</button>
+</form>
+
+<h2>Listado</h2>
+<table>
+    <thead>
+        <tr>
+            <th>Usuario</th>
+            <th>Correo</th>
+            <th>Rol</th>
+            <th>Acciones</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for perfil in perfiles %}
+            <tr>
+                <td>{{ perfil.user.username }}</td>
+                <td>{{ perfil.user.email }}</td>
+                <td>{{ perfil.get_rol_display }}</td>
+                <td>
+                    <a class="btn btn-secondary" href="{% url 'admin_panel:editar_usuario' perfil.id %}">Editar</a>
+                    <form method="post" action="{% url 'admin_panel:eliminar_usuario' perfil.id %}" style="display:inline;">
+                        {% csrf_token %}
+                        <button class="btn btn-danger" type="submit">Eliminar</button>
+                    </form>
+                </td>
+            </tr>
+        {% empty %}
+            <tr>
+                <td colspan="4">No hay usuarios de negocio registrados.</td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

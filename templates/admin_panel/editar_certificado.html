@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+
+{% block title %}Editar Certificado | Pragma OCR{% endblock %}
+
+{% block content %}
+<h1>Editar certificado {{ certificado.numero_referencia }}</h1>
+<form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button class="btn btn-primary" type="submit">Guardar cambios</button>
+    <a class="btn btn-secondary" href="{% url 'admin_panel:admin_certificados' %}">Volver</a>
+</form>
+{% endblock %}

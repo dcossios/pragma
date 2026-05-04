@@ -1,0 +1,16 @@
+# Django OCR Invoice Processing System - Dependencies
+# Author: Pragma Team
+# Date: 2026-03-18
+# Description: Project dependencies
+
+Django>=4.2
+psycopg2-binary>=2.9
+python-dotenv>=1.0
+PyMuPDF>=1.23
+pytesseract>=0.3
+Pillow>=10.0
+reportlab>=4.0
+openpyxl>=3.1
+django-crispy-forms>=2.0
+crispy-bootstrap5>=0.7
+gunicorn>=21.0

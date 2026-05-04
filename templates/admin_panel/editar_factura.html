@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+
+{% block title %}Editar Factura | Pragma OCR{% endblock %}
+
+{% block content %}
+<h1>Editar factura {{ factura.numero_factura }}</h1>
+<form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button class="btn btn-primary" type="submit">Guardar cambios</button>
+    <a class="btn btn-secondary" href="{% url 'admin_panel:admin_facturas' %}">Volver</a>
+</form>
+{% endblock %}

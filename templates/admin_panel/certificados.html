@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Certificados | Pragma OCR{% endblock %}
+
+{% block content %}
+<h1>Administración de certificados bancarios</h1>
+
+<h2>Crear certificado</h2>
+<form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button class="btn btn-primary" type="submit">Guardar certificado</button>
+</form>
+
+<h2>Listado</h2>
+<table>
+    <thead>
+        <tr>
+            <th>Referencia</th>
+            <th>Monto</th>
+            <th>Fecha</th>
+            <th>NIT</th>
+            <th>Acciones</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for certificado in certificados %}
+            <tr>
+                <td>{{ certificado.numero_referencia }}</td>
+                <td>{{ certificado.monto }}</td>
+                <td>{{ certificado.fecha }}</td>
+                <td>{{ certificado.cliente_nit }}</td>
+                <td>
+                    <a class="btn btn-secondary" href="{% url 'admin_panel:editar_certificado' certificado.id %}">Editar</a>
+                    <form method="post" action="{% url 'admin_panel:eliminar_certificado' certificado.id %}" style="display:inline;">
+                        {% csrf_token %}
+                        <button class="btn btn-danger" type="submit">Eliminar</button>
+                    </form>
+                </td>
+            </tr>
+        {% empty %}
+            <tr>
+                <td colspan="5">No hay certificados.</td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

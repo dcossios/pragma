@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+
+{% block title %}Revisar Factura | Pragma OCR{% endblock %}
+
+{% block content %}
+<div class="row" style="display: flex; justify-content: center;">
+    <div class="col-md-8" style="width: 100%; max-width: 800px;">
+        <div class="mb-5">
+            <h1 class="h2 mb-2 text-center">Revisar Datos Extraídos</h1>
+            <p class="text-muted text-center">Verifica que la información extraída por el motor OCR sea correcta antes de guardarla.</p>
+        </div>
+
+        {% if ocr_errors %}
+            <div class="alert alert-warning">
+                <div class="small fw-bold">Atención: Se detectaron algunas inconsistencias durante la extracción:</div>
+                <ul class="mb-0 mt-1 small">
+                    {% for error in ocr_errors %}
+                        <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+
+        <div class="card p-0 overflow-hidden shadow-lg border-primary-light">
+            <div class="bg-primary p-4 text-white">
+                <h3 class="h5 mb-0">Formulario de Confirmación</h3>
+            </div>
+            <div class="p-5">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="row mb-4" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                        <div>
+                            <label for="{{ form.numero_factura.id_for_label }}" class="form-label fw-bold small text-uppercase">Número de Factura</label>
+                            {{ form.numero_factura }}
+                            {% if form.numero_factura.errors %}<div class="text-error small mt-1">{{ form.numero_factura.errors }}</div>{% endif %}
+                        </div>
+
+                        <div>
+                            <label for="{{ form.cliente_nit.id_for_label }}" class="form-label fw-bold small text-uppercase">NIT del Cliente</label>
+                            {{ form.cliente_nit }}
+                            {% if form.cliente_nit.errors %}<div class="text-error small mt-1">{{ form.cliente_nit.errors }}</div>{% endif %}
+                        </div>
+                    </div>
+
+                    <div class="row mb-4" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                        <div>
+                            <label for="{{ form.monto.id_for_label }}" class="form-label fw-bold small text-uppercase">Monto (Q)</label>
+                            {{ form.monto }}
+                            {% if form.monto.errors %}<div class="text-error small mt-1">{{ form.monto.errors }}</div>{% endif %}
+                        </div>
+
+                        <div>
+                            <label for="{{ form.fecha.id_for_label }}" class="form-label fw-bold small text-uppercase">Fecha de Emisión</label>
+                            {{ form.fecha }}
+                            {% if form.fecha.errors %}<div class="text-error small mt-1">{{ form.fecha.errors }}</div>{% endif %}
+                        </div>
+                    </div>
+
+                    <div class="mb-5">
+                        <label for="{{ form.cliente.id_for_label }}" class="form-label fw-bold small text-uppercase">Asociar Cliente (Manual)</label>
+                        <div class="select-wrapper">
+                            {{ form.cliente }}
+                        </div>
+                        <div class="form-text small text-muted mt-2 italic">Usa este campo si el sistema no pudo identificar al cliente automáticamente por su NIT.</div>
+                        {% if form.cliente.errors %}<div class="text-error small mt-1">{{ form.cliente.errors }}</div>{% endif %}
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center pt-4 border-top">
+                        <a href="{% url 'usuario:cargar_factura' %}" class="text-muted fw-600 text-decoration-none hover-dark">
+                            &larr; Descartar y volver a subir
+                        </a>
+                        <button type="submit" class="btn btn-primary btn-lg px-5">
+                            Guardar Factura
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .h2 { font-size: 2rem; }
+    .h5 { font-size: 1.1rem; }
+    .mb-0 { margin-bottom: 0 !important; }
+    .mb-2 { margin-bottom: 0.5rem; }
+    .mb-4 { margin-bottom: 1.5rem; }
+    .mb-5 { margin-bottom: 2rem; }
+    .mt-1 { margin-top: 0.25rem; }
+    .mt-2 { margin-top: 0.5rem; }
+    .pt-4 { padding-top: 1.5rem; }
+    .text-center { text-align: center; }
+    .text-uppercase { text-transform: uppercase; }
+    .text-decoration-none { text-decoration: none; }
+    .fw-600 { font-weight: 600; }
+    .fw-bold { font-weight: 700; }
+    .small { font-size: 0.85rem; }
+    .italic { font-style: italic; }
+    .bg-primary { background-color: var(--primary); }
+    .text-white { color: white; }
+    .border-primary-light { border-color: var(--primary-light); }
+    .border-top { border-top: 1px solid var(--border-color); }
+    .text-error { color: #DC2626; }
+    .px-5 { padding-left: 3rem; padding-right: 3rem; }
+
+    .hover-dark:hover { color: var(--text-main); }
+
+    .form-label { display: block; margin-bottom: 0.5rem; color: #4B5563; }
+    
+    input[type="text"], input[type="number"], input[type="date"], select {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        font-family: inherit;
+        font-size: 1rem;
+        transition: var(--transition);
+        background-color: #F9FAFB;
+    }
+
+    input:focus, select:focus {
+        outline: none;
+        border-color: var(--primary);
+        background-color: white;
+        box-shadow: 0 0 0 3px rgba(245, 124, 0, 0.1);
+    }
+
+    .select-wrapper { position: relative; }
+    .select-wrapper select {
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236B7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 1rem center;
+        background-size: 1.25rem;
+    }
+</style>
+{% endblock %}
