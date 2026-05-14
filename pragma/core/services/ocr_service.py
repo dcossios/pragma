@@ -135,6 +135,28 @@ def _extract_text_from_path(file_path):
 
 
 def extract_invoice_data(file_object):
+    """
+    Extrae los datos de una factura a partir de un archivo PDF o imagen.
+
+    Vuelca el contenido del archivo a un archivo temporal, ejecuta la extracción de
+    texto (PyMuPDF para PDF con fallback a Tesseract, Tesseract directo para
+    imágenes) y delega el parseo de campos en ``parse_invoice_text``. El archivo
+    temporal se elimina siempre al finalizar.
+
+    Args:
+        file_object: Objeto tipo archivo con atributo ``name`` (para determinar la
+            extensión) y métodos ``read`` y, opcionalmente, ``seek``.
+
+    Returns:
+        dict: Diccionario estructurado con las claves ``numero_factura`` (str|None),
+        ``cliente_nit`` (str|None), ``monto`` (Decimal|None), ``fecha`` (date|None),
+        ``errors`` (list[str]) y ``raw_text`` (str). Ante un formato no soportado se
+        devuelve el mismo diccionario con los campos en None y el error en
+        ``errors``.
+
+    Raises:
+        OSError: Si falla la creación, escritura o eliminación del archivo temporal.
+    """
     original_name = getattr(file_object, "name", "")
     extension = Path(original_name).suffix.lower()
     if hasattr(file_object, "seek"):
@@ -166,6 +188,23 @@ def extract_invoice_data(file_object):
 
 
 def parse_invoice_text(text):
+    """
+    Extrae los campos de una factura a partir de texto plano mediante expresiones
+    regulares.
+
+    Busca número de factura, NIT, monto y fecha, normaliza el monto a ``Decimal`` y
+    la fecha a ``date``, y acumula en ``errors`` un mensaje por cada campo no
+    encontrado o con formato inválido.
+
+    Args:
+        text (str): Texto del que extraer los campos (normalmente resultado del OCR).
+
+    Returns:
+        dict: Diccionario estructurado con las claves ``numero_factura`` (str|None),
+        ``cliente_nit`` (str|None), ``monto`` (Decimal|None), ``fecha`` (date|None),
+        ``errors`` (list[str]) y ``raw_text`` (str, primeros 5000 caracteres del
+        texto recibido).
+    """
     invoice_number = _extract_first_match(INVOICE_NUMBER_PATTERNS, text)
     nit = _extract_first_match(NIT_PATTERNS, text)
     raw_amount = _extract_first_match(AMOUNT_PATTERNS, text)

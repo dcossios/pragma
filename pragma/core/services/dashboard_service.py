@@ -13,6 +13,29 @@ from pragma.core.models import DetallePago, Factura
 
 
 def get_dashboard_metrics():
+    """
+    Calcula las métricas agregadas que alimentan el dashboard.
+
+    Consulta los modelos Factura y DetallePago para obtener totales, tasas de
+    coincidencia, validaciones pendientes, tiempo estimado ahorrado, las
+    inconsistencias más recientes y el desglose por estado de match.
+
+    Returns:
+        dict: Diccionario con las claves:
+            - ``total_facturas_procesadas`` (int): Total de facturas registradas.
+            - ``tasa_match_exitoso`` (float): Porcentaje de DetallePago con estado
+              "match" sobre el total de comparaciones.
+            - ``validaciones_pendientes`` (int): Facturas sin ningún DetallePago.
+            - ``tiempo_ahorrado_horas`` (Decimal): Horas estimadas ahorradas frente
+              al proceso manual.
+            - ``inconsistencias_recientes`` (QuerySet): Hasta 5 DetallePago con
+              estado distinto de "match", ordenados por fecha descendente.
+            - ``estado_breakdown`` (QuerySet): Conteo de DetallePago agrupado por
+              ``estado_match``.
+
+    Raises:
+        django.db.DatabaseError: Si falla alguna de las consultas a la base de datos.
+    """
     total_facturas = Factura.objects.count()
     total_matches = DetallePago.objects.filter(estado_match="match").count()
     total_comparaciones = DetallePago.objects.count()
