@@ -7,9 +7,9 @@ Description: Dashboard metrics aggregation service
 
 from decimal import Decimal
 
-from django.db.models import Count
+from django.db.models import Count, Q
 
-from pragma.core.models import DetallePago, Factura
+from pragma.core.models import CertificadoBancario, DetallePago, Factura
 
 
 def get_dashboard_metrics():
@@ -32,6 +32,13 @@ def get_dashboard_metrics():
               estado distinto de "match", ordenados por fecha descendente.
             - ``estado_breakdown`` (QuerySet): Conteo de DetallePago agrupado por
               ``estado_match``.
+            - ``tasa_match_sobre_total`` (float): Porcentaje de DetallePago con
+              estado "match" sobre el total de facturas procesadas.
+            - ``distribucion_score`` (dict): Conteo de DetallePago por rango de
+              ``match_score`` con las claves ``rango_0_49``, ``rango_50_69``,
+              ``rango_70_89`` y ``rango_90_100``.
+            - ``facturas_sin_certificado_candidato`` (int): Facturas cuyo
+              ``cliente_nit`` no aparece en ningún CertificadoBancario.
 
     Raises:
         django.db.DatabaseError: Si falla alguna de las consultas a la base de datos.
@@ -63,6 +70,25 @@ def get_dashboard_metrics():
         .order_by("estado_match")
     )
 
+    if total_facturas > 0:
+        tasa_match_sobre_total = round((total_matches / total_facturas) * 100, 2)
+    else:
+        tasa_match_sobre_total = 0
+
+    distribucion_score = DetallePago.objects.aggregate(
+        rango_0_49=Count("id", filter=Q(match_score__lt=50)),
+        rango_50_69=Count("id", filter=Q(match_score__gte=50, match_score__lt=70)),
+        rango_70_89=Count("id", filter=Q(match_score__gte=70, match_score__lt=90)),
+        rango_90_100=Count("id", filter=Q(match_score__gte=90)),
+    )
+
+    nits_con_certificado = CertificadoBancario.objects.values_list(
+        "cliente_nit", flat=True
+    )
+    facturas_sin_certificado_candidato = Factura.objects.exclude(
+        cliente_nit__in=nits_con_certificado
+    ).count()
+
     return {
         "total_facturas_procesadas": total_facturas,
         "tasa_match_exitoso": tasa_match_exitoso,
@@ -70,4 +96,7 @@ def get_dashboard_metrics():
         "tiempo_ahorrado_horas": tiempo_ahorrado_horas,
         "inconsistencias_recientes": inconsistencias_recientes,
         "estado_breakdown": estado_breakdown,
+        "tasa_match_sobre_total": tasa_match_sobre_total,
+        "distribucion_score": distribucion_score,
+        "facturas_sin_certificado_candidato": facturas_sin_certificado_candidato,
     }
