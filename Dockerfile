@@ -2,6 +2,7 @@
 # Author: Pragma Team
 # Date: 2026-03-18
 # Description: Docker configuration for Django application
+# Multi-arch: linux/amd64, linux/arm64, linux/arm/v7
 
 FROM python:3.11-slim
 
@@ -14,7 +15,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     tesseract-ocr \
     libtesseract-dev \
     libgl1 \
-    libglib2.0-0 \
+    libglib2.0-0t64 \
     postgresql-client \
     && rm -rf /var/lib/apt/lists/*
 

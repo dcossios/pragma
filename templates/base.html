@@ -14,7 +14,7 @@
             --primary: #F57C00;      /* Orange 700 */
             --primary-light: #F9A825; /* Yellow 700 */
             --accent: #FDD835;       /* Yellow 600 */
-            --bg-sidebar: #000000;
+            --bg-sidebar: #FFFFFF;
             --bg-main: #FFFFFF;
             --text-main: #1A1A1A;
             --text-muted: #666666;
@@ -47,7 +47,7 @@
         .sidebar {
             width: var(--sidebar-width);
             background-color: var(--bg-sidebar);
-            color: #FFFFFF;
+            color: var(--text-main);
             position: fixed;
             top: 0;
             bottom: 0;
@@ -56,6 +56,7 @@
             flex-direction: column;
             padding: 2rem 1.5rem;
             z-index: 1000;
+            border-right: 1px solid var(--border-color);
         }
 
         .sidebar-brand {
@@ -63,15 +64,16 @@
             font-weight: 800;
             font-size: 1.5rem;
             margin-bottom: 3rem;
-            color: var(--accent);
+            color: var(--primary);
             text-decoration: none;
             display: flex;
             align-items: center;
-            gap: 0.5rem;
+            justify-content: center;
+            width: 100%;
         }
 
         .sidebar-brand img {
-            height: 34px;
+            height: 64px;
             width: auto;
             display: block;
         }
@@ -89,7 +91,7 @@
             display: flex;
             align-items: center;
             padding: 0.8rem 1rem;
-            color: #AAAAAA;
+            color: #4B5563;
             text-decoration: none;
             border-radius: 8px;
             font-weight: 500;
@@ -97,8 +99,8 @@
         }
 
         .sidebar-nav-link:hover, .sidebar-nav-link.active {
-            color: #FFFFFF;
-            background-color: rgba(255, 255, 255, 0.1);
+            color: var(--text-main);
+            background-color: #F5F5F7;
         }
 
         .sidebar-nav-link.active {
@@ -109,7 +111,7 @@
         .sidebar-footer {
             margin-top: auto;
             padding-top: 1rem;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            border-top: 1px solid var(--border-color);
         }
 
         /* Main Content */
@@ -143,7 +145,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            color: var(--bg-sidebar);
+            color: var(--text-main);
             font-size: 0.8rem;
         }
 
@@ -269,7 +271,7 @@
         .logout-btn {
             background: none;
             border: none;
-            color: #AAAAAA;
+            color: #6B7280;
             font-family: inherit;
             font-size: 0.9rem;
             font-weight: 600;
@@ -278,7 +280,7 @@
         }
 
         .logout-btn:hover {
-            color: #FFFFFF;
+            color: var(--text-main);
         }
 
         @media (max-width: 768px) {
@@ -297,7 +299,7 @@
 <body>
     <div class="sidebar">
         <a href="{% url 'usuario:dashboard' %}" class="sidebar-brand">
-            <img src="{% static 'img/pragma.svg' %}" alt="Pragma">
+            <img src="{% static 'img/pragma.png' %}" alt="Pragma">
         </a>
         
         <ul class="sidebar-nav">
