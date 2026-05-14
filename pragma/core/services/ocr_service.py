@@ -20,6 +20,10 @@ from PIL import Image
 logger = logging.getLogger(__name__)
 
 
+class OcrExtractionError(Exception):
+    """Se lanza cuando todos los motores de OCR disponibles fallan al extraer texto."""
+
+
 INVOICE_NUMBER_PATTERNS = [
     r"(?:factura|invoice|no\.?\s*factura|n[uú]mero\s*de\s*factura|serie)\s*[:#-]?\s*([A-Z0-9\-]+)",
     r"\b(FAC[-\s]?\d{3,})\b",
@@ -101,28 +105,49 @@ def _extract_first_match(patterns, text):
 
 def _extract_text_from_pdf(file_path):
     text = ""
-    with fitz.open(file_path) as document:
-        text = "\n".join(page.get_text() for page in document)
-    
-    # If the PDF is scanned (little to no text extracted), fallback to OCR on each page
-    if len(text.strip()) < 50:
-        ocr_text = []
+    pymupdf_error = None
+    try:
         with fitz.open(file_path) as document:
-            for page in document:
-                # Render page to image (pixmap)
-                pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))  # Scale for better OCR
-                img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
-                ocr_text.append(pytesseract.image_to_string(img, lang="eng+spa"))
-        text = "\n".join(ocr_text)
-    
+            text = "\n".join(page.get_text() for page in document)
+    except Exception as exc:  # PyMuPDF no pudo abrir o leer el PDF
+        pymupdf_error = exc
+        logger.warning(f"PyMuPDF falló al extraer texto del PDF: {exc}")
+
+    # If PyMuPDF failed or the PDF is scanned (little to no text), fallback to OCR
+    if pymupdf_error is not None or len(text.strip()) < 50:
+        try:
+            ocr_text = []
+            with fitz.open(file_path) as document:
+                for page in document:
+                    # Render page to image (pixmap)
+                    pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))  # Scale for better OCR
+                    img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+                    ocr_text.append(pytesseract.image_to_string(img, lang="eng+spa"))
+            text = "\n".join(ocr_text)
+        except Exception as ocr_error:  # Tesseract (o el render) también falló
+            if pymupdf_error is not None:
+                raise OcrExtractionError(
+                    "PyMuPDF y Tesseract fallaron al procesar el PDF. "
+                    f"PyMuPDF: {pymupdf_error}. Tesseract: {ocr_error}."
+                ) from ocr_error
+            raise OcrExtractionError(
+                "PyMuPDF extrajo texto insuficiente y Tesseract falló al "
+                f"procesar el PDF: {ocr_error}."
+            ) from ocr_error
+
     return text
 
 
 def _extract_text_from_image(file_path):
-    with Image.open(file_path) as image:
-        # Preprocessing: convert to grayscale
-        processed_img = image.convert("L")
-        return pytesseract.image_to_string(processed_img, lang="eng+spa")
+    try:
+        with Image.open(file_path) as image:
+            # Preprocessing: convert to grayscale
+            processed_img = image.convert("L")
+            return pytesseract.image_to_string(processed_img, lang="eng+spa")
+    except Exception as exc:  # Tesseract es el único motor para imágenes
+        raise OcrExtractionError(
+            f"Tesseract falló al procesar la imagen: {exc}."
+        ) from exc
 
 
 def _extract_text_from_path(file_path):
@@ -150,9 +175,10 @@ def extract_invoice_data(file_object):
     Returns:
         dict: Diccionario estructurado con las claves ``numero_factura`` (str|None),
         ``cliente_nit`` (str|None), ``monto`` (Decimal|None), ``fecha`` (date|None),
-        ``errors`` (list[str]) y ``raw_text`` (str). Ante un formato no soportado se
-        devuelve el mismo diccionario con los campos en None y el error en
-        ``errors``.
+        ``errors`` (list[str]) y ``raw_text`` (str). Ante un formato no soportado o
+        un fallo simultáneo de PyMuPDF y Tesseract se devuelve el mismo diccionario
+        con los campos en None y el detalle del fallo en ``errors``; nunca se
+        propaga la excepción de OCR a la capa que invoca esta función.
 
     Raises:
         OSError: Si falla la creación, escritura o eliminación del archivo temporal.
@@ -173,7 +199,8 @@ def extract_invoice_data(file_object):
         text = _extract_text_from_path(temp_path)
         logger.info(f"Extracted Text (first 200 chars): {text[:200]}")
         return parse_invoice_text(text)
-    except ValueError as e:
+    except (ValueError, OcrExtractionError) as e:
+        logger.error(f"Error de extracción OCR: {e}")
         return {
             "numero_factura": None,
             "cliente_nit": None,
