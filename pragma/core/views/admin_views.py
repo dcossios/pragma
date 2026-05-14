@@ -5,13 +5,9 @@ Date: 2026-03-18
 Description: Admin-panel views for CRUD and matching operations
 """
 
-import uuid
-
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
-from django.core.files.base import ContentFile
-from django.core.files.storage import default_storage
 from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -23,20 +19,13 @@ from pragma.core.forms import (
     UsuarioCreationWithRoleForm,
     UsuarioRoleUpdateForm,
 )
-from pragma.core.models import CertificadoBancario, Cliente, Factura, Usuario
+from pragma.core.models import CertificadoBancario, Factura, Usuario
 from pragma.core.permissions import ensure_admin_or_raise
-from pragma.core.services.comparador_pagos import (
-    buscar_certificado_candidato,
-    buscar_factura_candidata,
-    crear_o_actualizar_detalle_pago,
+from pragma.core.services.factura_service import (
+    finalizar_certificado,
+    finalizar_factura,
+    procesar_carga_factura,
 )
-from pragma.core.services.ocr_service import extract_invoice_data
-
-
-def _resolver_cliente(cliente, nit):
-    if cliente:
-        return cliente
-    return Cliente.objects.filter(nit=nit).first()
 
 
 @login_required
@@ -52,25 +41,10 @@ def admin_facturas(request):
     if request.method == "POST":
         form = FacturaUploadForm(request.POST, request.FILES)
         if form.is_valid():
-            archivo = form.cleaned_data["archivo"]
-            cliente = form.cleaned_data["cliente"]
-
-            temp_name = f"temp/{uuid.uuid4()}_{archivo.name}"
-            path = default_storage.save(temp_name, ContentFile(archivo.read()))
-
-            with default_storage.open(path) as f:
-                ocr_result = extract_invoice_data(f)
-
-            request.session["ocr_factura_data_admin"] = {
-                "numero_factura": ocr_result.get("numero_factura"),
-                "monto": str(ocr_result.get("monto")) if ocr_result.get("monto") else None,
-                "fecha": str(ocr_result.get("fecha")) if ocr_result.get("fecha") else None,
-                "cliente_nit": ocr_result.get("cliente_nit"),
-                "cliente_id": cliente.id if cliente else None,
-                "temp_path": path,
-                "original_name": archivo.name,
-                "errors": ocr_result.get("errors", []),
-            }
+            request.session["ocr_factura_data_admin"] = procesar_carga_factura(
+                form.cleaned_data["archivo"],
+                form.cleaned_data["cliente"],
+            )
             return redirect("admin_panel:revisar_factura_admin")
     else:
         form = FacturaUploadForm()
@@ -98,21 +72,7 @@ def revisar_factura_admin(request):
         form = FacturaEditForm(request.POST)
         if form.is_valid():
             factura = form.save(commit=False)
-
-            temp_path = data["temp_path"]
-            if default_storage.exists(temp_path):
-                with default_storage.open(temp_path) as f:
-                    factura.archivo.save(data["original_name"], f, save=False)
-
-            factura.ocr_data = data
-            factura.cliente = _resolver_cliente(form.cleaned_data.get("cliente"), factura.cliente_nit)
-            factura.save()
-
-            certificado_candidato = buscar_certificado_candidato(factura)
-            if certificado_candidato:
-                crear_o_actualizar_detalle_pago(factura, certificado_candidato)
-
-            default_storage.delete(temp_path)
+            finalizar_factura(factura, data, form.cleaned_data.get("cliente"))
             del request.session["ocr_factura_data_admin"]
 
             messages.success(request, f"Factura {factura.numero_factura} guardada correctamente.")
@@ -169,17 +129,11 @@ def admin_certificados(request):
         form = CertificadoBancarioForm(request.POST, request.FILES)
         if form.is_valid():
             certificado = form.save(commit=False)
-            certificado.cliente = _resolver_cliente(
+            factura_candidata = finalizar_certificado(
+                certificado,
                 form.cleaned_data.get("cliente"),
-                certificado.cliente_nit,
             )
-            if certificado.cliente and not certificado.cliente_nit:
-                certificado.cliente_nit = certificado.cliente.nit
-            certificado.save()
-
-            factura_candidata = buscar_factura_candidata(certificado)
             if factura_candidata:
-                crear_o_actualizar_detalle_pago(factura_candidata, certificado)
                 messages.success(
                     request,
                     "Certificado creado y comparación automática ejecutada.",
