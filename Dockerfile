@@ -13,10 +13,12 @@ ENV PYTHONUNBUFFERED=1
 # Install system dependencies for OCR
 RUN apt-get update && apt-get install -y --no-install-recommends \
     tesseract-ocr \
+    tesseract-ocr-spa \
     libtesseract-dev \
     libgl1 \
     libglib2.0-0t64 \
     postgresql-client \
+    gettext \
     && rm -rf /var/lib/apt/lists/*
 
 # Set work directory
@@ -29,6 +31,12 @@ RUN pip install --upgrade pip && pip install -r requirements.txt
 # Copy project files
 COPY . .
 
+# Compile translations
+RUN python manage.py compilemessages || true
+
+# Collect static files
+RUN python manage.py collectstatic --noinput || true
+
 # Create non-root user for security
 RUN adduser --disabled-password --gecos '' appuser && chown -R appuser:appuser /app
 USER appuser
@@ -36,5 +44,5 @@ USER appuser
 # Expose port
 EXPOSE 8000
 
-# Run migrations and start server
-CMD ["sh", "-c", "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"]
+# Run migrations and start server with gunicorn
+CMD ["sh", "-c", "python manage.py migrate && gunicorn pragma.wsgi:application --bind 0.0.0.0:$PORT --workers 2"]
