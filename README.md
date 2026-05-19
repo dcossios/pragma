@@ -32,7 +32,7 @@ docker-compose up --build
 
 2) Abrir aplicación:
 
-- App: `http://localhost:8000`
+- App: `http://localhost:8001`
 - Base de datos PostgreSQL expuesta en host: `localhost:5433`
 
 3) Detener servicios:
@@ -100,6 +100,11 @@ USE_SQLITE=True python3 datos_ficticios.py 5 3
 ```bash
 USE_SQLITE=True python3 manage.py test -v 2
 ```
+
+## Documentación
+
+- [Arquitectura](docs/ARCHITECTURE.md) — stack, modelo de dominio, flujos OCR/matching, despliegue
+- [Onboarding para desarrolladores](docs/ONBOARDING.md) — primer día, roles, tour funcional, troubleshooting
 
 ## Secciones de la aplicación
 
